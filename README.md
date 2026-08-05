@@ -1,6 +1,6 @@
 # reBot Arm B601-RS 夹爪控制
 
-基于 Seeed B601-RS LeRobot 插件修改的夹爪控制版本。在保持 leader 实时跟随的同时，使用 MIT 位置控制夹爪，并通过 RobStride `0x700B` 限制电机最大力矩。
+目前Seeed官方的夹爪使用前馈控制，存在扭矩小-速度小不跟手/扭矩大-速度大-容易损坏夹爪的情况。此优化是基于 Seeed B601-RS LeRobot 插件修改的夹爪控制版本。在保持 leader 实时跟随的同时，使用 MIT 位置控制夹爪，并通过 RobStride `0x700B` 限制电机最大力矩。
 
 ## 当前控制逻辑
 
