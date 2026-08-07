@@ -31,7 +31,7 @@ CONSERVATIVE_LIMITS_DEG = {
     "wrist_flex": (-80.0, 89.9),
     "wrist_yaw": (-89.9, 89.9),
     "wrist_roll": (-90.0, 90.0),
-    "gripper": (0.0, 245.0),
+    "gripper": (0.0, 265.0),
 }
 
 

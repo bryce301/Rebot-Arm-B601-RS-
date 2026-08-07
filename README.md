@@ -5,9 +5,9 @@
 ## 当前控制逻辑
 
 - 夹爪命令：`send_mit(target_pos_rad, 0, kp, kd, 0)`
-- 默认增益：`kp=12`、`kd=2` 
+- 默认增益：`kp=12`、`kd=1.9`
 - 默认 `0x700B` 力矩限制：`0.5 N.m`
-- 夹爪软件角度范围：`0~245 deg`
+- 夹爪软件角度范围：`0~265 deg`
 - 启动遥操作前，RS 会使用 minimum-jerk 轨迹平滑移动到 leader 当前姿态
 - 遥操作、录制和回放均可记录 RS 实际角度、速度、力矩和反馈时间戳
 
@@ -49,7 +49,7 @@ python scripts/rebot_teleop_position_gripper.py \
   --leader-port /dev/ttyUSB0 \
   --robot-port can0 \
   --gripper-kp 12 \
-  --gripper-kd 2 \
+  --gripper-kd 1.9 \
   --gripper-torque-limit 0.5
 ```
 

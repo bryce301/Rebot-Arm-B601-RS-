@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--zero-time", type=float, default=5.0, help="Smooth time from current pose to zero pose")
     parser.add_argument("--start-time", type=float, default=3.0, help="Smooth time from zero pose to first recorded frame")
     parser.add_argument("--gripper-kp", type=float, default=12.0)
-    parser.add_argument("--gripper-kd", type=float, default=2.0)
+    parser.add_argument("--gripper-kd", type=float, default=1.9)
     parser.add_argument("--gripper-torque-limit", type=float, default=0.5, help="Runtime 0x700B limit in Nm")
     parser.add_argument("--start-frame", type=int, default=0)
     parser.add_argument("--end-frame", type=int, default=-1, help="Exclusive end frame. Use -1 for all frames.")

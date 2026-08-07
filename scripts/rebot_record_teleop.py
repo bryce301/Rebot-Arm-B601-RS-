@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--duration", type=float, default=60.0, help="Recording duration in seconds. Use <=0 for Ctrl+C stop.")
     parser.add_argument("--align-time", type=float, default=3.0, help="Smooth time from current RS pose to current leader pose")
     parser.add_argument("--gripper-kp", type=float, default=12.0)
-    parser.add_argument("--gripper-kd", type=float, default=2.0)
+    parser.add_argument("--gripper-kd", type=float, default=1.9)
     parser.add_argument("--gripper-torque-limit", type=float, default=0.5, help="Runtime 0x700B limit in Nm")
     parser.add_argument("--out", required=True, help="Output .npz path")
     parser.add_argument("--leader-id", default="rebot_arm_102_leader")

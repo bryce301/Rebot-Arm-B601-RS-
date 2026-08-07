@@ -57,7 +57,7 @@ class SeeedB601RSFollowerConfig(RobotConfig, SeeedB601FollowerConfigBase):
             "wrist_flex":    (-80.0, 90.0),
             "wrist_yaw":     (-90.0, 90.0),
             "wrist_roll":    (-90.0, 90.0),
-            "gripper":       (-0.0, 245.0),
+            "gripper":       (-0.0, 265.0),
         }
     )
 
@@ -93,7 +93,7 @@ class SeeedB601RSFollowerConfig(RobotConfig, SeeedB601FollowerConfigBase):
 
     # Motor-side MIT position gains used when gripper_control_mode="position_mit".
     gripper_position_mit_kp: float = 12.0
-    gripper_position_mit_kd: float = 2.0
+    gripper_position_mit_kd: float = 1.9
 
     # RobStride total torque limit written to 0x700B for position_mit mode.
     # The value remains active after disconnect.
