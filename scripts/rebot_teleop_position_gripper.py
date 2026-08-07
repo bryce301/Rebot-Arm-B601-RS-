@@ -234,7 +234,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--startup-min-duration", type=float, default=3.0)
     parser.add_argument("--startup-max-speed", type=float, default=30.0, help="Maximum follower joint speed in deg/s")
     parser.add_argument("--gripper-kp", type=float, default=12.0)
-    parser.add_argument("--gripper-kd", type=float, default=1.9)
+    parser.add_argument("--gripper-kd", type=float, default=1.8)
     parser.add_argument("--gripper-max-step-deg", type=float, default=3.0)
     parser.add_argument("--gripper-torque-limit", type=float, default=0.5, help="Runtime 0x700B limit in Nm")
     parser.add_argument(

@@ -5,7 +5,7 @@
 ## 当前控制逻辑
 
 - 夹爪命令：`send_mit(target_pos_rad, 0, kp, kd, 0)`
-- 默认增益：`kp=12`、`kd=1.9`
+- 默认增益：`kp=12`、`kd=1.8`
 - 默认 `0x700B` 力矩限制：`0.5 N.m`
 - 夹爪软件角度范围：`0~265 deg`
 - 夹爪目标最大变化：`3 deg/frame`（相对上一帧已发送目标）
@@ -50,7 +50,7 @@ python scripts/rebot_teleop_position_gripper.py \
   --leader-port /dev/ttyUSB0 \
   --robot-port can0 \
   --gripper-kp 12 \
-  --gripper-kd 1.9 \
+  --gripper-kd 1.8 \
   --gripper-max-step-deg 3 \
   --gripper-torque-limit 0.5
 ```

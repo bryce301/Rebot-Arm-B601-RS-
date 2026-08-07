@@ -93,7 +93,7 @@ class SeeedB601RSFollowerConfig(RobotConfig, SeeedB601FollowerConfigBase):
 
     # Motor-side MIT position gains used when gripper_control_mode="position_mit".
     gripper_position_mit_kp: float = 12.0
-    gripper_position_mit_kd: float = 1.9
+    gripper_position_mit_kd: float = 1.8
 
     # Maximum change in the follower gripper target between consecutive frames.
     gripper_max_step_deg: float = 3.0
