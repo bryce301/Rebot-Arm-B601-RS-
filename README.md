@@ -8,6 +8,7 @@
 - 默认增益：`kp=12`、`kd=1.9`
 - 默认 `0x700B` 力矩限制：`0.5 N.m`
 - 夹爪软件角度范围：`0~265 deg`
+- 夹爪目标最大变化：`3 deg/frame`（相对上一帧已发送目标）
 - 启动遥操作前，RS 会使用 minimum-jerk 轨迹平滑移动到 leader 当前姿态
 - 遥操作、录制和回放均可记录 RS 实际角度、速度、力矩和反馈时间戳
 
@@ -50,6 +51,7 @@ python scripts/rebot_teleop_position_gripper.py \
   --robot-port can0 \
   --gripper-kp 12 \
   --gripper-kd 1.9 \
+  --gripper-max-step-deg 3 \
   --gripper-torque-limit 0.5
 ```
 

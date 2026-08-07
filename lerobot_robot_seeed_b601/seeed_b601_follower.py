@@ -82,6 +82,7 @@ class SeeedB601FollowerBase(Robot):
         self.motor_names = list(config.motor_can_ids.keys())
         self._in_safe_zero = False
         self._emergency_disable_requested = False
+        self._last_sent_goal_pos_deg: dict[str, float] = {}
 
         # Initialize cameras
         self.cameras = make_cameras_from_configs(config.cameras)
@@ -471,6 +472,25 @@ class SeeedB601FollowerBase(Robot):
         if 'wrist_yaw' not in goal_pos:
             goal_pos['wrist_yaw'] = 0.0
 
+        if self.motor_type == "rs" and FOLLOWER_GRIPPER_MOTOR in goal_pos:
+            max_step_deg = float(getattr(self.config, "gripper_max_step_deg", 0.0))
+            previous_deg = self._last_sent_goal_pos_deg.get(FOLLOWER_GRIPPER_MOTOR)
+            if max_step_deg > 0.0 and previous_deg is not None:
+                desired_deg = goal_pos[FOLLOWER_GRIPPER_MOTOR]
+                limited_deg = max(
+                    previous_deg - max_step_deg,
+                    min(previous_deg + max_step_deg, desired_deg),
+                )
+                if limited_deg != desired_deg:
+                    logger.debug(
+                        "Limited gripper target step from %.2f to %.2f deg (previous=%.2f, max_step=%.2f)",
+                        desired_deg,
+                        limited_deg,
+                        previous_deg,
+                        max_step_deg,
+                    )
+                goal_pos[FOLLOWER_GRIPPER_MOTOR] = limited_deg
+
         # Safety: Cap relative target
         if self.config.max_relative_target is not None:
             # We need current position in degrees to compare against relative limit safely
@@ -545,6 +565,7 @@ class SeeedB601FollowerBase(Robot):
         # motorbridge sends packets mostly synchronously here over loop,
         # so we don't need a bulk send command through ctypes.
 
+        self._last_sent_goal_pos_deg.update(goal_pos)
         return {f"{motor}.pos": val for motor, val in goal_pos.items()}
 
     def disconnect(self):

@@ -44,6 +44,7 @@ CSV_FIELDS = [
     "feedback_source",
     "mit_kp",
     "mit_kd",
+    "gripper_max_step_deg",
     "tau_ff_nm",
     "torque_limit_0x700b_nm",
 ]
@@ -153,6 +154,7 @@ class TeleopCsvLogger:
                 "feedback_source": getattr(state, "source", "unknown"),
                 "mit_kp": self.robot.config.gripper_position_mit_kp,
                 "mit_kd": self.robot.config.gripper_position_mit_kd,
+                "gripper_max_step_deg": self.robot.config.gripper_max_step_deg,
                 "tau_ff_nm": 0.0,
                 "torque_limit_0x700b_nm": self.robot.active_gripper_torque_limit_nm,
             }
@@ -233,6 +235,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--startup-max-speed", type=float, default=30.0, help="Maximum follower joint speed in deg/s")
     parser.add_argument("--gripper-kp", type=float, default=12.0)
     parser.add_argument("--gripper-kd", type=float, default=1.9)
+    parser.add_argument("--gripper-max-step-deg", type=float, default=3.0)
     parser.add_argument("--gripper-torque-limit", type=float, default=0.5, help="Runtime 0x700B limit in Nm")
     parser.add_argument(
         "--out",
@@ -279,6 +282,7 @@ def main() -> None:
                     gripper_control_mode="position_mit",
                     gripper_position_mit_kp=args.gripper_kp,
                     gripper_position_mit_kd=args.gripper_kd,
+                    gripper_max_step_deg=args.gripper_max_step_deg,
                     gripper_torque_limit_0x700b_nm=args.gripper_torque_limit,
                 )
             )
@@ -292,6 +296,7 @@ def main() -> None:
             print(
                 "Gripper command: send_mit(target_pos, 0, "
                 f"{args.gripper_kp:g}, {args.gripper_kd:g}, 0); "
+                f"max_step={args.gripper_max_step_deg:g} deg/frame; "
                 f"verified 0x700B={robot.active_gripper_torque_limit_nm:g} Nm"
             )
             print("Keep the leader still during the startup transition.")

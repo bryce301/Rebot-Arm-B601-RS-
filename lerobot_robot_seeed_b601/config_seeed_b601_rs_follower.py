@@ -95,6 +95,9 @@ class SeeedB601RSFollowerConfig(RobotConfig, SeeedB601FollowerConfigBase):
     gripper_position_mit_kp: float = 12.0
     gripper_position_mit_kd: float = 1.9
 
+    # Maximum change in the follower gripper target between consecutive frames.
+    gripper_max_step_deg: float = 3.0
+
     # RobStride total torque limit written to 0x700B for position_mit mode.
     # The value remains active after disconnect.
     gripper_torque_limit_0x700b_nm: float = 0.5

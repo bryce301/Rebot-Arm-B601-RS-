@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import time
 from datetime import datetime
 
@@ -21,6 +22,7 @@ from rebot_motion_common import (
     conservative_limits_rad,
     current_positions_rad,
     leader_action_to_rs_target_rad,
+    limit_gripper_target_step,
     make_metadata,
     move_smoothly,
     prompt_before_motion,
@@ -44,6 +46,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--align-time", type=float, default=3.0, help="Smooth time from current RS pose to current leader pose")
     parser.add_argument("--gripper-kp", type=float, default=12.0)
     parser.add_argument("--gripper-kd", type=float, default=1.9)
+    parser.add_argument("--gripper-max-step-deg", type=float, default=3.0)
     parser.add_argument("--gripper-torque-limit", type=float, default=0.5, help="Runtime 0x700B limit in Nm")
     parser.add_argument("--out", required=True, help="Output .npz path")
     parser.add_argument("--leader-id", default="rebot_arm_102_leader")
@@ -63,8 +66,11 @@ def main() -> None:
         raise ValueError("--gripper-kp and --gripper-kd must be non-negative")
     if args.gripper_torque_limit <= 0.0:
         raise ValueError("--gripper-torque-limit must be positive")
+    if args.gripper_max_step_deg <= 0.0:
+        raise ValueError("--gripper-max-step-deg must be positive")
 
     period_s = 1.0 / args.fps
+    gripper_max_step_rad = math.radians(args.gripper_max_step_deg)
     limits_rad = conservative_limits_rad(JOINT_NAMES)
 
     teleop = None
@@ -100,6 +106,7 @@ def main() -> None:
             gripper_control_mode="position_mit",
             gripper_position_mit_kp=args.gripper_kp,
             gripper_position_mit_kd=args.gripper_kd,
+            gripper_max_step_deg=args.gripper_max_step_deg,
             gripper_torque_limit_0x700b_nm=args.gripper_torque_limit,
         )
 
@@ -113,6 +120,7 @@ def main() -> None:
         print(
             "Gripper command: send_mit(target_pos, 0, "
             f"{args.gripper_kp:g}, {args.gripper_kd:g}, 0); "
+            f"max_step={args.gripper_max_step_deg:g} deg/frame; "
             f"verified 0x700B={robot.active_gripper_torque_limit_nm:g} Nm"
         )
 
@@ -139,7 +147,7 @@ def main() -> None:
             "The robot will smoothly move from current RS pose to the current leader pose.",
             assume_yes=args.yes,
         )
-        move_smoothly(
+        last_sent_target_rad = move_smoothly(
             robot=robot,
             start_rad=current_rad,
             goal_rad=leader_goal_rad,
@@ -149,6 +157,7 @@ def main() -> None:
             limits_rad=limits_rad,
             gripper_limiter=gripper_limiter,
             label="Align RS to current leader pose",
+            gripper_max_step_rad=gripper_max_step_rad,
         )
 
         print(f"Recording at {args.fps} Hz. Press Ctrl+C to stop.")
@@ -166,6 +175,12 @@ def main() -> None:
                 robot.config.joint_directions,
                 limits_rad,
             )
+            target_rad = limit_gripper_target_step(
+                target_rad,
+                last_sent_target_rad,
+                joint_names,
+                gripper_max_step_rad,
+            )
 
             states = request_and_read_states(robot, joint_names)
             pos_rad, vel_rad_s, torque, status_code = states_to_arrays(states, joint_names)
@@ -178,6 +193,7 @@ def main() -> None:
                 gripper_limiter=gripper_limiter,
                 dt_s=period_s,
             )
+            last_sent_target_rad = target_rad
 
             saved_frame = bool(np.all(np.isfinite(pos_rad)))
             if not saved_frame:
@@ -228,6 +244,7 @@ def main() -> None:
                 gripper_position_mit_kd=(
                     float(robot.config.gripper_position_mit_kd) if robot is not None else args.gripper_kd
                 ),
+                gripper_max_step_deg=args.gripper_max_step_deg,
                 gripper_torque_limit_0x700b_nm=(
                     robot.active_gripper_torque_limit_nm if robot is not None else args.gripper_torque_limit
                 ),

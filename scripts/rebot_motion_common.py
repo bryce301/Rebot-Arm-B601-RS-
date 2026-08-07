@@ -47,6 +47,25 @@ def clamp_positions_rad(pos_rad: np.ndarray, limits_rad: np.ndarray) -> np.ndarr
     return np.clip(pos, limits_rad[:, 0], limits_rad[:, 1])
 
 
+def limit_gripper_target_step(
+    target_pos_rad: np.ndarray,
+    previous_target_pos_rad: np.ndarray,
+    joint_names: list[str] | tuple[str, ...],
+    max_step_rad: float | None,
+) -> np.ndarray:
+    target = np.asarray(target_pos_rad, dtype=np.float64).copy()
+    if max_step_rad is None or max_step_rad <= 0.0:
+        return target
+    gripper_index = list(joint_names).index("gripper")
+    previous = float(previous_target_pos_rad[gripper_index])
+    target[gripper_index] = np.clip(
+        target[gripper_index],
+        previous - max_step_rad,
+        previous + max_step_rad,
+    )
+    return target
+
+
 def minimum_jerk(u: float | np.ndarray) -> float | np.ndarray:
     return 10.0 * u**3 - 15.0 * u**4 + 6.0 * u**5
 
@@ -240,11 +259,19 @@ def move_smoothly(
     limits_rad: np.ndarray,
     gripper_limiter: GripperTorqueLimiter,
     label: str,
-) -> None:
+    gripper_max_step_rad: float | None = None,
+) -> np.ndarray:
+    previous_target = clamp_positions_rad(start_rad, limits_rad)
     if duration_s <= 0:
         states = request_and_read_states(robot, joint_names)
-        send_rs_mit_targets(robot, clamp_positions_rad(goal_rad, limits_rad), joint_names, states, gripper_limiter, 1.0 / fps)
-        return
+        target = limit_gripper_target_step(
+            clamp_positions_rad(goal_rad, limits_rad),
+            previous_target,
+            joint_names,
+            gripper_max_step_rad,
+        )
+        send_rs_mit_targets(robot, target, joint_names, states, gripper_limiter, 1.0 / fps)
+        return target
 
     period_s = 1.0 / fps
     steps = max(2, int(round(duration_s * fps)))
@@ -256,9 +283,17 @@ def move_smoothly(
         u = step / (steps - 1)
         s = minimum_jerk(u)
         target = start + s * (goal - start)
+        target = limit_gripper_target_step(
+            target,
+            previous_target,
+            joint_names,
+            gripper_max_step_rad,
+        )
         states = request_and_read_states(robot, joint_names)
         send_rs_mit_targets(robot, target, joint_names, states, gripper_limiter, period_s)
+        previous_target = target
         sleep_to_next_tick(loop_start, period_s)
+    return previous_target
 
 
 def prompt_before_motion(message: str, assume_yes: bool = False) -> None:
@@ -289,6 +324,26 @@ def limit_relative_steps(trajectory: np.ndarray, max_step_rad: float | None) -> 
         clipped_delta = np.clip(delta, -max_step_rad, max_step_rad)
         clipped_count += int(np.count_nonzero(clipped_delta != delta))
         traj[i] = traj[i - 1] + clipped_delta
+    return traj, clipped_count
+
+
+def limit_gripper_trajectory_steps(
+    trajectory: np.ndarray,
+    joint_names: list[str] | tuple[str, ...],
+    max_step_rad: float | None,
+) -> tuple[np.ndarray, int]:
+    traj = np.asarray(trajectory, dtype=np.float64).copy()
+    if max_step_rad is None or max_step_rad <= 0.0:
+        return traj, 0
+    clipped_count = 0
+    gripper_index = list(joint_names).index("gripper")
+    for i in range(1, traj.shape[0]):
+        limited = limit_gripper_target_step(
+            traj[i], traj[i - 1], joint_names, max_step_rad
+        )
+        if limited[gripper_index] != traj[i, gripper_index]:
+            clipped_count += 1
+        traj[i] = limited
     return traj, clipped_count
 
 

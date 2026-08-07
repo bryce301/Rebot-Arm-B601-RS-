@@ -60,6 +60,8 @@ class SeeedB601RSFollower(SeeedB601FollowerBase):
                 f"unsupported gripper_control_mode={gripper_control_mode!r}; "
                 f"expected one of: {choices}"
             )
+        if float(self.config.gripper_max_step_deg) < 0.0:
+            raise ValueError("gripper_max_step_deg must be >= 0")
         if gripper_control_mode == "torque":
             self._active_gripper_torque_limit_nm = None
             logger.info("Gripper control mode: torque")

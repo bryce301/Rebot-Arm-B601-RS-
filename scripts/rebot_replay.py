@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import time
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from rebot_motion_common import (
     JOINT_NAMES,
     conservative_limits_rad,
     current_positions_rad,
+    limit_gripper_trajectory_steps,
     load_and_clean_trajectory,
     move_smoothly,
     prompt_before_motion,
@@ -41,6 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start-time", type=float, default=3.0, help="Smooth time from zero pose to first recorded frame")
     parser.add_argument("--gripper-kp", type=float, default=12.0)
     parser.add_argument("--gripper-kd", type=float, default=1.9)
+    parser.add_argument("--gripper-max-step-deg", type=float, default=3.0)
     parser.add_argument("--gripper-torque-limit", type=float, default=0.5, help="Runtime 0x700B limit in Nm")
     parser.add_argument("--start-frame", type=int, default=0)
     parser.add_argument("--end-frame", type=int, default=-1, help="Exclusive end frame. Use -1 for all frames.")
@@ -68,8 +71,11 @@ def main() -> None:
         raise ValueError("--gripper-kp and --gripper-kd must be non-negative")
     if args.gripper_torque_limit <= 0.0:
         raise ValueError("--gripper-torque-limit must be positive")
+    if args.gripper_max_step_deg <= 0.0:
+        raise ValueError("--gripper-max-step-deg must be positive")
 
     period_s = 1.0 / args.fps
+    gripper_max_step_rad = math.radians(args.gripper_max_step_deg)
     limits_rad = conservative_limits_rad(JOINT_NAMES)
     loaded = load_and_clean_trajectory(
         args.file,
@@ -79,6 +85,16 @@ def main() -> None:
         max_step_rad=args.max_step_rad,
     )
     trajectory = loaded["trajectory"]
+    trajectory, gripper_clipped_count = limit_gripper_trajectory_steps(
+        trajectory,
+        JOINT_NAMES,
+        gripper_max_step_rad,
+    )
+    if gripper_clipped_count:
+        print(
+            f"[warn] limited {gripper_clipped_count} gripper target steps "
+            f"to {args.gripper_max_step_deg:g} deg/frame"
+        )
 
     start_frame = max(0, args.start_frame)
     end_frame = trajectory.shape[0] if args.end_frame < 0 else min(args.end_frame, trajectory.shape[0])
@@ -181,6 +197,7 @@ def main() -> None:
             replay_fps=np.asarray(args.fps, dtype=np.int64),
             gripper_position_mit_kp=np.asarray(args.gripper_kp, dtype=np.float64),
             gripper_position_mit_kd=np.asarray(args.gripper_kd, dtype=np.float64),
+            gripper_max_step_deg=np.asarray(args.gripper_max_step_deg, dtype=np.float64),
             gripper_torque_limit_0x700b_nm=np.asarray(args.gripper_torque_limit, dtype=np.float64),
         )
         print(f"Saved replay tracking log to {out}")
@@ -194,6 +211,7 @@ def main() -> None:
             gripper_control_mode="position_mit",
             gripper_position_mit_kp=args.gripper_kp,
             gripper_position_mit_kd=args.gripper_kd,
+            gripper_max_step_deg=args.gripper_max_step_deg,
             gripper_torque_limit_0x700b_nm=args.gripper_torque_limit,
         )
         robot = SeeedB601RSFollower(robot_cfg)
@@ -203,6 +221,7 @@ def main() -> None:
         print(
             "Gripper command: send_mit(target_pos, 0, "
             f"{args.gripper_kp:g}, {args.gripper_kd:g}, 0); "
+            f"max_step={args.gripper_max_step_deg:g} deg/frame; "
             f"verified 0x700B={robot.active_gripper_torque_limit_nm:g} Nm"
         )
 
@@ -239,6 +258,7 @@ def main() -> None:
             limits_rad=limits_rad,
             gripper_limiter=gripper_limiter,
             label="Move current RS pose to zero pose",
+            gripper_max_step_rad=gripper_max_step_rad,
         )
         move_smoothly(
             robot=robot,
@@ -250,6 +270,7 @@ def main() -> None:
             limits_rad=limits_rad,
             gripper_limiter=gripper_limiter,
             label="Move zero pose to first recorded frame",
+            gripper_max_step_rad=gripper_max_step_rad,
         )
 
         print(f"Replaying {trajectory.shape[0]} frames from {args.source} at {args.fps} Hz.")
